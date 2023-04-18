@@ -6,5 +6,6 @@ A Python implementation of Johnson's Re-Weighted Analysis for Regression. Used t
 ## References
 
 Tonidandel & LeBreton (2015) RWA Web: A Free, Comprehensive, Web-Based, and User-Friendly Tool for Relative Weight Analyses. https://link.springer.com/article/10.1007/s10869-014-9351-z
+
 Martin Chan (2020). Perform a Relative Weights Analysis. https://cran.r-project.org/web/packages/rwa/rwa.pdf
 Jeff Johnson (2000). A Heuristic Method for Estimating the Relative Weight of Predictor Variables in Multiple Regression. https://www.tandfonline.com/doi/abs/10.1207/S15327906MBR3501_1
