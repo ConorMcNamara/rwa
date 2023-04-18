@@ -2,10 +2,15 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 
 
 def johnson_relative_weights(
-    df: pd.DataFrame, x_vars: Optional[list] = None, y_var: Optional[str] = None
+    df: pd.DataFrame,
+    x_vars: Optional[list] = None,
+    y_var: Optional[str] = None,
+    plot_weights: bool = False,
+    plot_rescaled: bool = False,
 ) -> pd.DataFrame:
     """Calculates Johnson's Relative Weights for Regression results. This helps us determine the variables that contribute the most to R-squared
 
@@ -17,6 +22,10 @@ def johnson_relative_weights(
         A list containing all X variables for our regression. Optional if y is provided
     y_var: str
         A string of our y-variable metric. Optional if X is provided
+    plot_weights: bool, default=False
+        Whether or not to plot the weights
+    plot_rescaled: bool, default=False
+        Whether or not to plot the rescaled weights
 
     Returns
     -------
@@ -60,4 +69,12 @@ def johnson_relative_weights(
         columns=x_vars,
     )
     weights.index = ["relative weights", "rescaled relative weights"]
-    return weights
+        if plot_weights:
+        fig = px.bar(weights.T, y="relative weights", title="Relative Weights")
+        fig.show()
+    if plot_rescaled:
+        fig = px.bar(
+            weights.T, y="rescaled relative weights", title="Rescaled Relative Weights"
+        )
+        fig.show()
+    return weights.T
