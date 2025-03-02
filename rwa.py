@@ -23,9 +23,9 @@ def johnson_relative_weights(
     y_var: str
         A string of our y-variable metric. Optional if X is provided
     plot_weights: bool, default=False
-        Whether or not to plot the weights
+        Whether to plot the weights
     plot_rescaled: bool, default=False
-        Whether or not to plot the rescaled weights
+        Whether to plot the rescaled weights
 
     Returns
     -------
