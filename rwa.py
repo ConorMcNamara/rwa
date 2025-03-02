@@ -69,7 +69,7 @@ def johnson_relative_weights(
         columns=x_vars,
     )
     weights.index = ["relative weights", "rescaled relative weights"]
-        if plot_weights:
+    if plot_weights:
         fig = px.bar(weights.T, y="relative weights", title="Relative Weights")
         fig.show()
     if plot_rescaled:
