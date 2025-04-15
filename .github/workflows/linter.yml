@@ -1,0 +1,117 @@
+name: Formatting and Docstring Generation
+
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the 'main' branch
+  pull_request:
+    branches:
+      - main  # Trigger on pull requests targeting the 'main' branch
+
+jobs:
+  formatting:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest]
+        python-version: [ "3.12" ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}  # Adjust the version as needed
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff autopep8 docformatter mypy # Install required tools
+
+      - name: Auto-format code with autopep8
+        run: |
+          autopep8 --in-place --aggressive --max-line-length 120 **/*.py  # Fix formatting issues with autopep8
+
+      - name: Auto-format docstrings with docformatter
+        run: |
+          find . -name "*.py" -print -exec docformatter --in-place --wrap-summaries 120 --wrap-descriptions 120 {} \;
+
+      - name: Check code style with ruff
+        run: |
+          ruff format
+          ruff check --output-format=github .  # Check code style with ruff
+
+      # - name: Check type hints with mypy
+      #   run: |
+      #     mypy . --ignore-missing-imports --install-types # Run mypy for type checking
+      - name: Delete existing branch if it exists
+        run: |
+          git fetch origin
+          if git branch -r | grep -q "origin/auto-format-code"; then
+            set +e  # Allow the script to continue even if this command fails
+            git push origin --delete auto-format-code || echo "Branch deletion failed. It may not exist or is locked."
+            git remote prune origin  # Clean up remote-tracking references
+            git branch -D auto-format-code || echo "Local branch deletion failed. It may not exist."
+            set -e  # Re-enable strict error checking
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Auto-format code with ruff, autopep8 and docformatter"
+          title: "Auto-format Code"
+          body: |
+            This pull request automatically applies code formatting changes using ruff, autopep8, and docformatter.
+          branch: "auto-format-code"
+          base: "main"
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-docstrings:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest]
+        python-version: [ "3.12" ]
+    runs-on: ${{ matrix.os }}
+    needs: formatting  # Ensures this job runs after the formatting job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install pydocstringformatter
+
+      - name: Generate docstrings with numpydoc style
+        run: |
+          find . -name "*.py" ! -path "./docs/auto_examples/*" -exec pydocstringformatter -w --style numpydoc --numpydoc-section-order --numpydoc-name-type-spacing --numpydoc-section-spacing --numpydoc-section-hyphen-length --no-final-period {} +
+
+      - name: Delete existing branch if it exists
+        run: |
+          git fetch origin
+          if git branch -r | grep -q "origin/generate-docstrings"; then
+            set +e  # Allow the script to continue even if this command fails
+            git push origin --delete generate-docstrings || echo "Branch deletion failed. It may not exist or is locked."
+            set -e  # Re-enable strict error checking
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Generate docstrings using pydocstringformatter (numpydoc style)"
+          title: "Generate docstrings"
+          body: |
+            This pull request automatically applies docstring generation using pydocstringformatter with the numpydoc style.
+          branch: "generate-docstrings"  # The name of the branch to create
+          base: "main"  # Or "master", depending on your main branch
+        continue-on-error: true
