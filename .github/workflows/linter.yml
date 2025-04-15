@@ -32,7 +32,7 @@ jobs:
 
       - name: Auto-format code with autopep8
         run: |
-          autopep8 --in-place --aggressive --max-line-length 120 **/*.py  # Fix formatting issues with autopep8
+          autopep8 --in-place --aggressive --max-line-length 120 *.py  # Fix formatting issues with autopep8
 
       - name: Auto-format docstrings with docformatter
         run: |
