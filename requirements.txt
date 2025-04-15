@@ -1,5 +1,5 @@
 numpy
-plotly
 pandas
 pytest
 statsmodels
+plotly

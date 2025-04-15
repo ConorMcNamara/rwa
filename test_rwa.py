@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+import pytest
 import statsmodels.api as sm
 
 from rwa import johnson_relative_weights
@@ -25,3 +25,6 @@ class TestRWA:
         np.testing.assert_allclose(
             actual_rescaled_array, expected_rescaled_array, rtol=1e-3
         )
+
+if __name__ == "main":
+    pytest.main()
