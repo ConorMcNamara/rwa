@@ -16,20 +16,20 @@ def johnson_relative_weights(
 
     Parameters
     ----------
-    df: pandas DataFrame
+    df : pandas DataFrame
         DataFrame containing our data
-    x_vars: list, default=None
+    x_vars : list, default=None
         A list containing all X variables for our regression. Optional if y is provided
-    y_var: str
+    y_var : str
         A string of our y-variable metric. Optional if X is provided
-    plot_weights: bool, default=False
+    plot_weights : bool, default=False
         Whether to plot the weights
-    plot_rescaled: bool, default=False
+    plot_rescaled : bool, default=False
         Whether to plot the rescaled weights
 
     Returns
     -------
-    weights: pandas DataFrame
+    weights : pandas DataFrame
         The Johnson's relative weights for each variable in X as well as the rescaled weights
 
     Notes
