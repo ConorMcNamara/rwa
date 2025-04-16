@@ -1,7 +1,7 @@
 [project]
 name = "rwa"
-version = "0.1.0"
-description = ""
+version = "1.0.0"
+description = "Performs Johnson's Relative Weights Analysis for Regression Models"
 authors = [
     {name = "ConorMcNamara",email = "conor.s.mcnamara@gmail.com"}
 ]
