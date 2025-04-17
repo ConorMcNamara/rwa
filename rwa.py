@@ -63,9 +63,7 @@ def johnson_relative_weights(
     r_squared = np.sum(np.square(partial_effect))
     raw_relative_weight = np.matmul(lamda_squared, np.square(partial_effect))
     weights = pd.DataFrame(
-        np.array([raw_relative_weight, raw_relative_weight * 100 / r_squared]).reshape(
-            2, len(x_vars)
-        ),
+        np.array([raw_relative_weight, raw_relative_weight * 100 / r_squared]).reshape(2, len(x_vars)),
         columns=x_vars,
     )
     weights.index = ["relative weights", "rescaled relative weights"]
@@ -73,8 +71,6 @@ def johnson_relative_weights(
         fig = px.bar(weights.T, y="relative weights", title="Relative Weights")
         fig.show()
     if plot_rescaled:
-        fig = px.bar(
-            weights.T, y="rescaled relative weights", title="Rescaled Relative Weights"
-        )
+        fig = px.bar(weights.T, y="rescaled relative weights", title="Rescaled Relative Weights")
         fig.show()
     return weights.T
