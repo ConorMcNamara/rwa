@@ -1,10 +1,11 @@
 """Pytest configuration and fixtures for the test suite."""
 
+import pandas as pd
 import pytest
 
 
 @pytest.fixture(scope="session")
-def sample_dataframe():
+def sample_dataframe() -> pd.DataFrame:
     """Provide a sample DataFrame for testing.
 
     Returns
@@ -12,8 +13,6 @@ def sample_dataframe():
     pd.DataFrame
         A simple DataFrame with predictors and target variable.
     """
-    import pandas as pd
-
     return pd.DataFrame(
         {
             "x1": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],

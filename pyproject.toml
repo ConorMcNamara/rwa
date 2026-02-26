@@ -77,10 +77,6 @@ select = [
     "SIM",    # flake8-simplify
     "ANN",    # flake8-annotations
 ]
-ignore = [
-    "ANN101",  # Missing type annotation for self
-    "ANN102",  # Missing type annotation for cls
-]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -99,6 +95,9 @@ addopts = [
     "--cov-report=term-missing",
     "--cov-report=html",
     "--cov-report=xml",
+]
+markers = [
+    "network: tests that require network access (may be skipped in CI)",
 ]
 
 [tool.mypy]

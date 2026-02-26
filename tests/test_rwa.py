@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import statsmodels.api as sm
 
 from rwa import johnson_relative_weights
 
@@ -120,9 +121,14 @@ class TestRWA:
             assert np.abs(rescaled_sum - 100.0) < 0.1
 
     @staticmethod
+    @pytest.mark.network
     def test_rwa_toy_dataset() -> None:
-        """Tests rwa on a known toy dataset"""
-        df = sm.datasets.get_rdataset("mtcars", "datasets", cache=True).data
+        """Tests rwa on a known toy dataset (requires network access)."""
+        try:
+            df = sm.datasets.get_rdataset("mtcars", "datasets", cache=True).data
+        except Exception as e:
+            pytest.skip(f"Could not download mtcars dataset: {e}")
+
         mtcars = pd.DataFrame(df)
         weights = johnson_relative_weights(mtcars, ["cyl", "disp", "hp", "gear"], "mpg")
         actual_weight_array = weights.loc[:, "relative weights"].to_numpy()

@@ -1,7 +1,5 @@
 """Core functionality for Johnson's Relative Weights Analysis."""
 
-from typing import Optional
-
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -9,8 +7,8 @@ import plotly.express as px
 
 def johnson_relative_weights(
     df: pd.DataFrame,
-    x_vars: Optional[list[str]] = None,
-    y_var: Optional[str] = None,
+    x_vars: list[str] | None = None,
+    y_var: str | None = None,
     plot_weights: bool = False,
     plot_rescaled: bool = False,
 ) -> pd.DataFrame:
