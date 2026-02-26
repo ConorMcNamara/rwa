@@ -38,7 +38,7 @@ jobs:
 
       - name: Format docstrings
         run: |
-          find src tests -name "*.py" -exec pydocstringformatter -w --style numpydoc {} +
+          pydocstringformatter -w --style=numpydoc src tests
 
       - name: Commit and push changes (if any)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
