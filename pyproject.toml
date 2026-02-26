@@ -39,6 +39,7 @@ dev = [
     "ruff>=0.1.0",
     "autopep8>=2.0.0",
     "pydocstringformatter>=0.7.0",
+    "pandas-stubs>=2.0.0",
 ]
 test = [
     "pytest>=7.0.0",
