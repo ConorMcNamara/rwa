@@ -40,9 +40,9 @@ jobs:
         run: |
           ruff format --check src tests
 
-      - name: Type check with mypy
+      - name: Type check with zuban
         run: |
-          mypy src/rwa
+          zuban check src/rwa
 
       - name: Test with pytest
         run: |

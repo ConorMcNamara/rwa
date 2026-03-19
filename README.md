@@ -3,7 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.13%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Typed with mypy](https://img.shields.io/badge/typed-mypy-blue.svg)](http://mypy-lang.org/)
+[![Typed with zuban](https://img.shields.io/badge/typed-zuban-blue.svg)](https://zubanls.com)
 
 A modern Python implementation of Johnson's Relative Weights Analysis for regression models. This package helps estimate the contribution of each feature to the R-squared of a regression model.
 
@@ -85,7 +85,7 @@ pytest
 ### Type Checking
 
 ```bash
-mypy src/rwa
+zuban check src/rwa
 ```
 
 ### Linting and Formatting

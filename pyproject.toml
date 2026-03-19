@@ -35,7 +35,7 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "mypy>=1.0.0",
+    "zuban>=0.6.0",
     "ruff>=0.1.0",
     "autopep8>=2.0.0",
     "pydocstringformatter>=0.7.0",
@@ -101,8 +101,9 @@ markers = [
     "network: tests that require network access (may be skipped in CI)",
 ]
 
-[tool.mypy]
+[tool.zuban]
 python_version = "3.13"
+strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -114,8 +115,16 @@ warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
 extra_checks = true
+exclude_gitignore = true
+mode = "default"  # Or "mypy"
 
-[[tool.mypy.overrides]]
+# Recommended (and the default) for untyped code
+untyped_strict_optional = true
+
+# Mypy's default is "any", Zuban's "inferred"
+untyped_function_return_mode = "inferred"
+
+[[tool.zuban.overrides]]
 module = ["plotly.*", "statsmodels.*"]
 ignore_missing_imports = true
 

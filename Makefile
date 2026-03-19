@@ -9,7 +9,7 @@ help:
 	@echo "  test-cov       - Run tests with coverage report"
 	@echo "  lint           - Run ruff linter"
 	@echo "  format         - Auto-format code with ruff, autopep8, and pydocstringformatter"
-	@echo "  type-check     - Run mypy type checker"
+	@echo "  type-check     - Run zuban type checker"
 	@echo "  check          - Run all checks (lint, format check, type-check, test)"
 	@echo "  clean          - Remove build artifacts and cache files"
 	@echo "  build          - Build distribution packages"
@@ -44,7 +44,7 @@ format:
 
 # Type checking
 type-check:
-	mypy src/rwa
+	zuban check src/rwa
 
 # Run all checks
 check: lint type-check test
@@ -56,7 +56,7 @@ clean:
 	rm -rf dist/
 	rm -rf *.egg-info
 	rm -rf .pytest_cache/
-	rm -rf .mypy_cache/
+	rm -rf .zuban_cache/
 	rm -rf .ruff_cache/
 	rm -rf htmlcov/
 	rm -rf .coverage
