@@ -9,7 +9,38 @@ on:
       - main
 
 jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      primary: ${{ steps.versions.outputs.primary }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Derive primary Python version from pyproject.toml classifiers
+        id: versions
+        run: |
+          python - <<'EOF' >> "$GITHUB_OUTPUT"
+          import re, tomllib
+          with open("pyproject.toml", "rb") as f:
+              classifiers = tomllib.load(f)["project"]["classifiers"]
+          pat = re.compile(r"^Programming Language :: Python :: (\d+\.\d+)$")
+          vers = sorted(
+              {m.group(1) for c in classifiers if (m := pat.match(c))},
+              key=lambda v: tuple(map(int, v.split("."))),
+          )
+          if not vers:
+              raise SystemExit("No 'Programming Language :: Python :: X.Y' classifiers found in pyproject.toml")
+          print(f"primary={vers[0]}")
+          EOF
+
   quality:
+    needs: setup
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -21,10 +52,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python 3.13
+      - name: Set up Python ${{ needs.setup.outputs.primary }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ needs.setup.outputs.primary }}
 
       - name: Install dependencies
         run: |
