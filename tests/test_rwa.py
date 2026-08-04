@@ -121,6 +121,34 @@ class TestRWA:
             assert np.abs(rescaled_sum - 100.0) < 0.1
 
     @staticmethod
+    def test_output_is_real_valued() -> None:
+        """Test that weights are real floats, not complex.
+
+        The correlation matrix is symmetric, so eigh is used instead of eig. Using
+        eig produced a complex dtype that leaked into the returned weights.
+        """
+        np.random.seed(42)
+        df = pd.DataFrame(
+            {
+                "x1": np.random.randn(30),
+                "x2": np.random.randn(30),
+                "y": np.random.randn(30),
+            }
+        )
+        weights = johnson_relative_weights(df, ["x1", "x2"], "y")
+
+        for column in weights.columns:
+            assert weights[column].dtype == np.float64
+            assert not np.iscomplexobj(weights[column].to_numpy())
+
+    @staticmethod
+    def test_perfect_collinearity_raises() -> None:
+        """Test that perfectly collinear predictors raise an informative error."""
+        df = pd.DataFrame({"x1": [1, 2, 3, 4, 5], "x2": [2, 4, 6, 8, 10], "y": [1, 3, 5, 7, 9]})
+        with pytest.raises(ValueError, match="collinear"):
+            johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
+
+    @staticmethod
     @pytest.mark.network
     def test_rwa_toy_dataset() -> None:
         """Tests rwa on a known toy dataset (requires network access)."""

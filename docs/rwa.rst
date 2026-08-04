@@ -1,70 +1,200 @@
-Johnson's Re-weighted Analysis for Regression
-===============================================
+Johnson's Relative Weights Analysis
+===================================
 
-Johnson's Re-weighted Analysis for Regression is a statistical method used to improve the accuracy and robustness of regression analysis, particularly in the presence of heteroscedasticity or influential outliers. It was primarily developed by W. Johnson.
+Relative Weights Analysis (RWA), also known as Key Drivers Analysis, decomposes
+the variance explained by a linear regression model (:math:`R^2`) into
+contributions attributable to each predictor. It was introduced by Jeff W.
+Johnson in 2000 as a computationally tractable alternative to methods that
+require evaluating every possible subset of predictors.
+
+The Problem It Solves
+---------------------
+
+When predictors are correlated, the usual ways of judging "which variable matters
+most" break down:
+
+* **Standardized regression coefficients** are unstable under multicollinearity.
+  A predictor's coefficient depends on which other predictors are in the model,
+  so coefficients can shrink, grow, or flip sign as the model changes.
+
+* **Squared zero-order correlations** ignore the other predictors entirely, so
+  they double-count variance shared between correlated predictors and do not sum
+  to :math:`R^2`.
+
+RWA sidesteps both problems. It produces one non-negative weight per predictor,
+and those weights sum exactly to the model's :math:`R^2`, so each can be read as
+that predictor's share of explained variance.
 
 Key Concepts
 ------------
 
-* **Heteroscedasticity:** This refers to the situation where the variance of the error term in a regression model is not constant across all levels of the independent variables.  Ordinary Least Squares (OLS) regression assumes homoscedasticity (constant variance), and when this assumption is violated, the OLS estimates, while still unbiased, are inefficient, and the standard errors are biased, leading to incorrect inferences.
+* **Orthogonal transformation:** The core idea is to replace the correlated
+  predictors :math:`X` with a set of uncorrelated variables :math:`Z` that are as
+  close as possible to the original :math:`X`. Because the :math:`Z` variables
+  are orthogonal, regressing the criterion on them yields coefficients that can
+  be cleanly attributed, with no shared-variance ambiguity.
 
-* **Influential Outliers:** Outliers are data points that deviate significantly from the general pattern of the data.  Influential outliers are those that, when included or excluded from the regression analysis, cause substantial changes in the estimated regression coefficients.  These outliers can disproportionately affect the OLS estimates.
+* **Relative weight:** Each predictor's contribution is recovered by combining
+  (a) how strongly the orthogonal variables predict the criterion with (b) how
+  strongly each original predictor maps onto each orthogonal variable.
 
-* **Re-weighting:** Johnson's method involves assigning different weights to the data points in the regression analysis.  The weights are typically determined based on the estimated variance of the error term or the influence of the data points.  Data points with higher variance or greater influence are given lower weights, while those with lower variance or less influence are given higher weights.
+* **Rescaled relative weight:** The raw weights expressed as a percentage of
+  :math:`R^2`. These sum to 100 and are usually what gets reported, since they
+  answer "what share of the model's predictive power does this driver own?"
 
 Methodology
 -----------
 
-The general procedure for Johnson's Re-weighted Analysis for Regression involves the following steps:
+Let :math:`R_{xx}` be the correlation matrix among the :math:`p` predictors and
+:math:`r_{xy}` the vector of correlations between each predictor and the
+criterion.
 
-1.  **Initial Regression:** Perform an initial regression analysis using Ordinary Least Squares (OLS) to obtain preliminary estimates of the regression coefficients and residuals.
+1. **Eigendecomposition of the predictor correlation matrix:**
 
-2.  **Variance Estimation or Influence Measurement:**
-    * **Heteroscedasticity:** If heteroscedasticity is suspected, estimate the variance of the error term as a function of the independent variables.  This can be done using various methods, such as the White test, the Breusch-Pagan test, or by modeling the variance directly.
-    * **Outliers:** If outliers are a concern, measure the influence of each data point on the regression coefficients.  Common measures of influence include Cook's distance, DFFITS (difference in fits), and DFBETAS (difference in betas).
+   .. math::
 
-3.  **Weight Calculation:** Calculate the weights for each data point based on the estimated variance or the measured influence.
-    * **Heteroscedasticity:** Weights are typically inversely proportional to the estimated variance.  For example, if the variance of the i-th observation is estimated as  *v<sub>i</sub>*, the weight for that observation might be  *1/v<sub>i</sub>*.
-    * **Outliers:** Weights are assigned to downweight influential observations.  For example, observations with large Cook's distances might be assigned lower weights.  Various weighting functions can be used.
+      R_{xx} = V \Delta V'
 
-4.  **Weighted Least Squares (WLS) Regression:** Perform a Weighted Least Squares (WLS) regression using the calculated weights.  WLS minimizes the sum of the weighted squared residuals, giving less weight to observations with higher variance or greater influence.
+   where :math:`V` holds the eigenvectors and :math:`\Delta` the eigenvalues on
+   its diagonal. Because :math:`R_{xx}` is real and symmetric, this is computed
+   with a symmetric eigensolver (``numpy.linalg.eigh``), which guarantees real
+   eigenvalues and orthonormal eigenvectors.
 
-5.  **Iteration (Optional):** In some cases, the process may be iterated.  The residuals from the WLS regression can be used to refine the variance estimates or influence measures, and the weights can be updated accordingly.  This iterative process can continue until the estimates converge.
+2. **Construct the orthogonal approximation.** Form the symmetric square root of
+   :math:`R_{xx}`:
 
-Advantages
+   .. math::
+
+      \Lambda = V \Delta^{1/2} V'
+
+   :math:`\Lambda` is the matrix of correlations between the original predictors
+   and their orthogonal counterparts :math:`Z = X \Lambda^{-1}`. Johnson showed
+   that this choice makes :math:`Z` the set of orthogonal variables maximally
+   related to the original predictors in a least-squares sense.
+
+3. **Regress the criterion on the orthogonal variables:**
+
+   .. math::
+
+      \beta = \Lambda^{-1} r_{xy}
+
+   Since the :math:`Z` variables are uncorrelated, these standardized
+   coefficients are simply the correlations between :math:`Z` and the criterion.
+
+4. **Recover the model fit.** Because the coefficients are orthogonal, their
+   squares sum to the variance explained:
+
+   .. math::
+
+      R^2 = \sum_{k=1}^{p} \beta_k^2
+
+5. **Combine the two pieces to get raw relative weights:**
+
+   .. math::
+
+      \varepsilon = \Lambda^{2} \beta^{2}
+
+   where :math:`\Lambda^{2}` squares :math:`\Lambda` elementwise. Each
+   :math:`\varepsilon_j` is non-negative, and the weights sum to :math:`R^2`.
+
+6. **Rescale to percentages:**
+
+   .. math::
+
+      \varepsilon^{\text{rescaled}}_j = 100 \times \frac{\varepsilon_j}{R^2}
+
+Interpretation
+--------------
+
+A rescaled weight of 30 means that predictor accounts for roughly 30% of the
+variance the model explains — not 30% of the variance in the criterion overall.
+Because the raw weights sum to :math:`R^2`, a model with a low :math:`R^2` can
+still yield large rescaled weights; the rescaled values describe how explained
+variance is distributed, not how much of it there is.
+
+Relative weights are non-negative by construction, so they convey **magnitude
+but not direction**. A predictor strongly *negatively* related to the criterion
+receives a large weight. Inspect the sign of the zero-order correlations or the
+regression coefficients alongside the weights to recover direction.
+
+Assumptions and Limitations
+---------------------------
+
+* **Linear model.** RWA decomposes the :math:`R^2` of a linear regression. It
+  says nothing about nonlinear or interactive effects unless those terms are
+  entered as predictors explicitly.
+
+* **Perfect collinearity is not permitted.** If a predictor is an exact linear
+  combination of the others, :math:`R_{xx}` is singular, :math:`\Lambda` cannot
+  be inverted, and the decomposition is undefined. This implementation raises a
+  ``ValueError`` in that case. Ordinary multicollinearity — the situation RWA
+  exists to handle — is fine; it is exact redundancy that fails.
+
+* **Near-singular inputs are numerically fragile.** With predictors that are
+  almost perfectly redundant, :math:`\Lambda^{-1}` is poorly conditioned and the
+  raw weights can become very large, even while the rescaled weights remain
+  interpretable.
+
+* **No inferential output.** The implementation returns point estimates only. It
+  does not provide standard errors, confidence intervals, or significance tests;
+  bootstrapping is the usual approach when those are needed.
+
+Relationship to Other Methods
+-----------------------------
+
+RWA typically produces results very close to **Shapley value regression** (also
+called LMG or dominance analysis), which averages each predictor's incremental
+:math:`R^2` across all possible predictor orderings. Shapley regression is
+generally regarded as the more principled decomposition, but its cost grows
+exponentially in the number of predictors, whereas RWA requires a single
+eigendecomposition. For most applied problems the two agree closely, which is why
+RWA is the practical default when predictor counts are large.
+
+Usage
+-----
+
+.. code-block:: python
+
+   import pandas as pd
+   from rwa import johnson_relative_weights
+
+   df = pd.DataFrame({
+       "feature1": [1, 2, 3, 4, 5, 6, 7, 8],
+       "feature2": [2, 1, 6, 3, 10, 5, 9, 7],
+       "target":   [1, 3, 5, 4, 9, 7, 11, 10],
+   })
+
+   weights = johnson_relative_weights(df, x_vars=["feature1", "feature2"], y_var="target")
+   print(weights)
+
+.. code-block:: text
+
+             relative weights  rescaled relative weights
+   feature1          0.522441                  53.856458
+   feature2          0.447621                  46.143542
+
+The returned ``DataFrame`` is indexed by predictor name and has two columns:
+``relative weights`` (summing to :math:`R^2`) and ``rescaled relative weights``
+(summing to 100).
+
+If ``x_vars`` is omitted it is inferred as every column except ``y_var``; if
+``y_var`` is omitted it is inferred as the single column not listed in
+``x_vars``. Passing ``plot_weights=True`` or ``plot_rescaled=True`` displays a
+Plotly bar chart, which requires the optional ``plot`` extra
+(``pip install "johnson-rwa[plot]"``).
+
+References
 ----------
 
-* **Improved Efficiency:** In the presence of heteroscedasticity, WLS with appropriate weights provides more efficient estimates than OLS.
+* Johnson, J. W. (2000). `A Heuristic Method for Estimating the Relative Weight
+  of Predictor Variables in Multiple Regression
+  <https://www.tandfonline.com/doi/abs/10.1207/S15327906MBR3501_1>`_.
+  *Multivariate Behavioral Research*, 35(1), 1-19.
 
-* **Reduced Bias:** Downweighting influential outliers can reduce the bias in the regression coefficients.
+* Tonidandel, S., & LeBreton, J. M. (2015). `RWA Web: A Free, Comprehensive,
+  Web-Based, and User-Friendly Tool for Relative Weight Analyses
+  <https://link.springer.com/article/10.1007/s10869-014-9351-z>`_.
+  *Journal of Business and Psychology*, 30(2), 207-216.
 
-* **More Robust Inference:** Correcting for heteroscedasticity leads to more reliable standard errors and thus more accurate hypothesis tests and confidence intervals.
-
-Limitations
-----------
-
-* **Correct Variance Model:** If dealing with heteroscedasticity, the effectiveness of the method depends on correctly specifying the model for the variance of the error term.
-
-* **Choice of Weighting Function:** If dealing with outliers, the choice of the weighting function can affect the results.
-
-* **Computational Cost:** Iterative methods can be computationally more expensive than OLS.
-
-Paper Attributions
-------------------
-
-While the concept of re-weighted least squares is a standard statistical technique, W. Johnson has made significant contributions in applying and extending these methods, particularly in the context of handling both heteroscedasticity and outliers.  Unfortunately, pinpointing a single, definitive paper that lays out "Johnson's Re-weighted Analysis" as a singular named method is difficult.  The techniques are often built upon and extended in various applications.
-
-To find relevant research, you could search for papers and publications by W. Johnson in econometrics or statistics journals, focusing on topics such as:
-
-* Heteroscedasticity-consistent covariance matrix estimation
-* Robust regression methods
-* Weighted least squares
-* Outlier detection and treatment in regression
-
-General references that discuss the underlying methods include:
-
-* **Carroll, R. J., & Ruppert, D. (1988). Transformation and weighting in regression.** Chapman and Hall.  (This book provides a comprehensive treatment of transformation and weighting techniques in regression.)
-* **Hamilton, L. C. (1992). Regression with graphics and statistics.** Duxbury Press. (This book covers regression diagnostics, including methods for detecting heteroscedasticity and outliers.)
-* **Wooldridge, J. M. (2015). Introductory econometrics: A modern approach.** Cengage Learning. (This textbook provides a standard treatment of heteroscedasticity and weighted least squares in the context of econometrics.)
-
-It's important to note that the specific implementation and application of re-weighting techniques can vary depending on the context and the specific characteristics of the data.
+* Chan, M. (2020). `rwa: Perform a Relative Weights Analysis
+  <https://cran.r-project.org/web/packages/rwa/rwa.pdf>`_. R package.

@@ -1,6 +1,6 @@
 [project]
-name = "rwa"
-version = "1.0.0"
+name = "johnson-rwa"
+dynamic = ["version"]
 description = "Performs Johnson's Relative Weights Analysis for Regression Models"
 authors = [
     {name = "ConorMcNamara", email = "conor.s.mcnamara@gmail.com"}
@@ -10,13 +10,14 @@ maintainers = [
 ]
 readme = "README.md"
 requires-python = ">=3.13"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["regression", "statistics", "relative-weights", "johnson", "machine-learning"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
@@ -28,36 +29,47 @@ classifiers = [
 dependencies = [
     "numpy>=1.24.0",
     "pandas>=2.0.0",
-    "plotly>=5.0.0",
 ]
 
 [project.optional-dependencies]
-dev = [
+plot = [
+    "plotly>=5.0.0",
+]
+
+# Development and test dependencies use PEP 735 dependency groups rather than
+# extras, so they are not published as installable extras on PyPI.
+# Install with `uv sync` (all groups) or `uv sync --group test`.
+[dependency-groups]
+test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "statsmodels>=0.14.0",
+]
+dev = [
+    {include-group = "test"},
     "zuban>=0.6.0",
     "ruff>=0.1.0",
     "autopep8>=2.0.0",
     "pydocstringformatter>=0.7.0",
     "pandas-stubs>=2.0.0",
-]
-test = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "statsmodels>=0.14.0",
+    "twine>=5.0.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/ConorMcNamara/rwa"
 Repository = "https://github.com/ConorMcNamara/rwa"
 Issues = "https://github.com/ConorMcNamara/rwa/issues"
+Changelog = "https://github.com/ConorMcNamara/rwa/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["setuptools>=65.0.0", "wheel"]
+requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = {attr = "rwa.__version__"}
 
 [tool.ruff]
 line-length = 120

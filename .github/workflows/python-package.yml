@@ -59,31 +59,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev,test]"
+        run: uv sync --locked --all-extras --python ${{ matrix.python-version }}
 
       - name: Lint with ruff
-        run: |
-          ruff check src tests
+        run: uv run ruff check src tests
 
       - name: Check formatting with ruff
-        run: |
-          ruff format --check src tests
+        run: uv run ruff format --check src tests
 
       - name: Type check with zuban
-        run: |
-          zuban check src/rwa
+        run: uv run zuban check src/rwa
 
       - name: Test with pytest
-        run: |
-          pytest tests/ --cov=src/rwa --cov-report=xml --cov-report=term
+        run: uv run pytest tests/ --cov=src/rwa --cov-report=xml --cov-report=term
 
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == needs.setup.outputs.primary
