@@ -1,10 +1,11 @@
-.PHONY: help install install-dev test test-cov lint format type-check check clean build docs
+.PHONY: help install install-dev lock test test-cov lint format type-check check clean build publish-test docs
 
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  install        - Install package dependencies"
-	@echo "  install-dev    - Install package with development dependencies"
+	@echo "  install        - Install runtime dependencies only"
+	@echo "  install-dev    - Sync the full dev environment (all groups and extras)"
+	@echo "  lock           - Re-resolve and update uv.lock"
 	@echo "  test           - Run tests"
 	@echo "  test-cov       - Run tests with coverage report"
 	@echo "  lint           - Run ruff linter"
@@ -13,38 +14,41 @@ help:
 	@echo "  check          - Run all checks (lint, format check, type-check, test)"
 	@echo "  clean          - Remove build artifacts and cache files"
 	@echo "  build          - Build distribution packages"
+	@echo "  publish-test   - Build and upload to TestPyPI"
 	@echo "  docs           - Build documentation (if applicable)"
 
 # Installation
 install:
-	python -m pip install --upgrade pip
-	pip install -e .
+	uv sync --no-default-groups
 
 install-dev:
-	python -m pip install --upgrade pip
-	pip install -e ".[dev,test]"
+	uv sync --all-extras
+
+lock:
+	uv lock
 
 # Testing
 test:
-	pytest tests/
+	uv run pytest tests/
 
 test-cov:
-	pytest tests/ --cov=src/rwa --cov-report=html --cov-report=term
+	uv run pytest tests/ --cov=src/rwa --cov-report=html --cov-report=term
 
 # Linting
 lint:
-	ruff check src tests
+	uv run ruff check src tests
+	uv run ruff format --check src tests
 
 # Formatting
 format:
-	ruff format src tests
-	ruff check --fix src tests
-	autopep8 --in-place --recursive src tests
-	pydocstringformatter -w --style=numpydoc src tests
+	uv run ruff format src tests
+	uv run ruff check --fix src tests
+	uv run autopep8 --in-place --recursive src tests
+	uv run pydocstringformatter -w --style=numpydoc src tests
 
 # Type checking
 type-check:
-	zuban check src/rwa
+	uv run zuban check src/rwa
 
 # Run all checks
 check: lint type-check test
@@ -55,6 +59,7 @@ clean:
 	rm -rf build/
 	rm -rf dist/
 	rm -rf *.egg-info
+	rm -rf src/*.egg-info
 	rm -rf .pytest_cache/
 	rm -rf .zuban_cache/
 	rm -rf .ruff_cache/
@@ -67,8 +72,12 @@ clean:
 
 # Build distribution
 build: clean
-	python -m pip install --upgrade build
-	python -m build
+	uv build
+	uv run twine check --strict dist/*
+
+# Dry-run release against TestPyPI
+publish-test: build
+	uv run twine upload --repository testpypi dist/*
 
 # Documentation (placeholder - add if you use sphinx or mkdocs)
 docs:

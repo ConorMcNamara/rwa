@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-import plotly.express as px
 
 
 def johnson_relative_weights(
@@ -41,7 +40,10 @@ def johnson_relative_weights(
     TypeError
         If df is not a pandas DataFrame
     ValueError
-        If neither y_var nor x_vars are provided
+        If neither y_var nor x_vars are provided, or if the predictors in
+        x_vars are perfectly collinear
+    ImportError
+        If plotting is requested but Plotly is not installed
 
     Notes
     -----
@@ -90,15 +92,30 @@ def johnson_relative_weights(
     y_corr = correlation_matrix[y_var].drop(y_var, axis=0)
     x_corr = correlation_matrix[x_vars].drop(y_var, axis=0)
 
-    # Eigenvalue decomposition
-    eig_val, eig_vec = np.linalg.eig(x_corr)
+    # Eigenvalue decomposition. The correlation matrix is real and symmetric, so
+    # eigh is used rather than eig: it guarantees real eigenvalues and orthonormal
+    # eigenvectors, whereas eig returns complex dtype that propagates all the way
+    # into the returned weights.
+    eig_val, eig_vec = np.linalg.eigh(x_corr)
+
+    # A correlation matrix is positive semi-definite, so any negative eigenvalue is
+    # floating-point noise. Clip it to zero to keep the square root real.
+    eig_val = np.clip(eig_val, 0.0, None)
+
     diag_eig = np.diagflat(eig_val)
     sqrt_diag_eig_val = np.sqrt(diag_eig)
     eigen_vec_t = eig_vec.T
 
     # Calculate lambda matrix
     lamda = np.matmul(np.matmul(eig_vec, sqrt_diag_eig_val), eigen_vec_t)
-    inv_lamda = np.linalg.inv(lamda)
+    try:
+        inv_lamda = np.linalg.inv(lamda)
+    except np.linalg.LinAlgError as exc:
+        raise ValueError(
+            "The predictors in x_vars are perfectly (or near-perfectly) collinear, "
+            "so their correlation matrix is singular and relative weights cannot be "
+            "computed. Drop redundant predictors and try again."
+        ) from exc
     lamda_squared = np.square(lamda)
 
     # Calculate partial effects and weights
@@ -113,13 +130,22 @@ def johnson_relative_weights(
     )
     weights.index = ["relative weights", "rescaled relative weights"]
 
-    # Optional plotting
-    if plot_weights:
-        fig = px.bar(weights.T, y="relative weights", title="Relative Weights")
-        fig.show()
+    # Optional plotting, which requires the "plot" extra
+    if plot_weights or plot_rescaled:
+        try:
+            import plotly.express as px
+        except ImportError as exc:  # pragma: no cover
+            raise ImportError(
+                "Plotting requires Plotly, which is an optional dependency. "
+                "Install it with: pip install 'johnson-rwa[plot]'"
+            ) from exc
 
-    if plot_rescaled:
-        fig = px.bar(weights.T, y="rescaled relative weights", title="Rescaled Relative Weights")
-        fig.show()
+        if plot_weights:
+            fig = px.bar(weights.T, y="relative weights", title="Relative Weights")
+            fig.show()
+
+        if plot_rescaled:
+            fig = px.bar(weights.T, y="rescaled relative weights", title="Rescaled Relative Weights")
+            fig.show()
 
     return weights.T

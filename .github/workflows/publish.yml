@@ -1,0 +1,83 @@
+# Builds and publishes the package to PyPI when a version tag is pushed.
+#
+# Publishing uses PyPI Trusted Publishing (OIDC), so no API token is stored in
+# repository secrets. Before the first release, register this repository as a
+# trusted publisher for the "johnson-rwa" project on PyPI:
+#   https://pypi.org/manage/account/publishing/
+# using workflow name "publish.yml" and environment "pypi".
+#
+# To cut a release:
+#   1. Bump __version__ in src/rwa/__init__.py and update CHANGELOG.md
+#   2. git tag v1.0.0 && git push origin v1.0.0
+
+name: Publish
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Verify tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          uv run --no-project python - <<'EOF'
+          import os, pathlib, sys
+
+          tag = os.environ["GITHUB_REF"].removeprefix("refs/tags/v")
+          sdists = list(pathlib.Path("dist").glob("*.tar.gz"))
+          if len(sdists) != 1:
+              sys.exit(f"Expected exactly one sdist in dist/, found {sdists}")
+          # Version is embedded in the sdist filename: <name>-<version>.tar.gz
+          built = sdists[0].name.removesuffix(".tar.gz").rsplit("-", 1)[1]
+          if built != tag:
+              sys.exit(f"Tag v{tag} does not match built version {built}")
+          print(f"Tag v{tag} matches built version {built}")
+          EOF
+
+      - name: Check metadata and README rendering
+        run: uv tool run --from twine twine check --strict dist/*
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    # Only ever publish from a version tag; workflow_dispatch runs the build
+    # and metadata checks only, so a manual run can never publish untagged code.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for Trusted Publishing
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

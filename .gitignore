@@ -114,10 +114,11 @@ venv.bak/
 # mkdocs documentation
 /site
 
-# mypy
+# Type checkers
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.zuban_cache/
 
 # Pyre type checker
 .pyre/
@@ -133,5 +134,6 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Poetry
-poetry.lock
+# uv
+# NOTE: uv.lock is intentionally committed for reproducible dev/CI environments.
+.uv_cache/

@@ -7,21 +7,34 @@ Thank you for your interest in contributing to rwa! This document provides guide
 
 ## Development Setup
 
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management. Install it first:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh  # On Windows: see uv docs
+```
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/ConorMcNamara/rwa.git
 cd rwa
 ```
 
-2. Create a virtual environment:
+2. Create the environment and install all dependencies:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+uv sync --all-extras
 ```
 
-3. Install dependencies:
+This creates a `.venv/`, installs the project in editable mode, and installs
+the `dev` and `test` dependency groups plus the optional `plot` extra. There is
+no need to activate the virtual environment — prefix commands with `uv run`.
+
+Dev and test dependencies live in `[dependency-groups]` (PEP 735), not in
+`[project.optional-dependencies]`, so they are not published to PyPI. Only the
+user-facing `plot` extra is.
+
+If you change dependencies in `pyproject.toml`, refresh the lockfile and commit it:
 ```bash
-pip install -e ".[dev,test]"
+uv lock
 ```
 
 ## Development Workflow
@@ -30,19 +43,23 @@ pip install -e ".[dev,test]"
 
 This project uses:
 - **ruff** for linting and formatting
-- **mypy** for static type checking
+- **zuban** for static type checking
 - **pydocstringformatter** for docstring formatting
 
 Before committing, run:
 ```bash
-# Format code
-ruff format src tests
+# Format code, fix lint, and format docstrings
+make format
 
-# Check and fix linting issues
-ruff check --fix src tests
+# Run every check CI runs (lint, type-check, tests)
+make check
+```
 
-# Type check
-mypy src/rwa
+Or invoke the tools directly:
+```bash
+uv run ruff format src tests
+uv run ruff check --fix src tests
+uv run zuban check src/rwa
 ```
 
 ### Testing
@@ -50,18 +67,18 @@ mypy src/rwa
 Run tests with pytest:
 ```bash
 # Run all tests
-pytest
+uv run pytest
 
 # Run with coverage
-pytest --cov=src/rwa --cov-report=html
+uv run pytest --cov=src/rwa --cov-report=html
 
 # Run specific test file
-pytest tests/test_rwa.py -v
+uv run pytest tests/test_rwa.py -v
 ```
 
 ### Type Hints
 
-All new code should include proper type hints. We enforce strict type checking with mypy.
+All new code should include proper type hints. We enforce strict type checking with zuban.
 
 Example:
 ```python

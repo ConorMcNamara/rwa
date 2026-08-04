@@ -17,23 +17,36 @@ In typical scenarios, RWA returns similar results to Shapley regression, but wit
 
 - ✨ Modern Python 3.13+ implementation with full type hints
 - 📊 Calculate Johnson's relative weights for regression models
-- 🎨 Optional interactive visualizations using Plotly
-- 🧪 Comprehensive test suite with >90% coverage
+- 🎨 Optional interactive visualizations using Plotly (via the `[plot]` extra)
+- 🧪 Test suite at ~80% coverage, validated against the reference R `rwa` package
 - 📦 Clean, well-documented API
 - 🔧 Fully typed and supports static type checking
 
 ## Installation
 
 ```bash
-pip install rwa
+pip install johnson-rwa
 ```
 
-For development:
+The distribution is named `johnson-rwa` (the name `rwa` on PyPI belongs to an
+unrelated project), but the import name is `rwa`:
+
+```python
+from rwa import johnson_relative_weights
+```
+
+Plotting is optional. To install the Plotly-backed visualizations:
+
+```bash
+pip install "johnson-rwa[plot]"
+```
+
+For development (requires [uv](https://docs.astral.sh/uv/)):
 
 ```bash
 git clone https://github.com/ConorMcNamara/rwa.git
 cd rwa
-pip install -e ".[dev]"
+uv sync --all-extras
 ```
 
 ## Quick Start
@@ -44,9 +57,9 @@ from rwa import johnson_relative_weights
 
 # Load your data
 df = pd.DataFrame({
-    'feature1': [1, 2, 3, 4, 5],
-    'feature2': [2, 4, 6, 8, 10],
-    'target': [1, 3, 5, 7, 9]
+    'feature1': [1, 2, 3, 4, 5, 6, 7, 8],
+    'feature2': [2, 1, 6, 3, 10, 5, 9, 7],
+    'target':   [1, 3, 5, 4, 9, 7, 11, 10],
 })
 
 # Calculate relative weights
@@ -54,11 +67,22 @@ weights = johnson_relative_weights(
     df,
     x_vars=['feature1', 'feature2'],
     y_var='target',
-    plot_weights=True  # Optional: display visualization
+    plot_weights=True  # Optional: display visualization (requires the [plot] extra)
 )
 
 print(weights)
 ```
+
+```
+          relative weights  rescaled relative weights
+feature1          0.522441                  53.856458
+feature2          0.447621                  46.143542
+```
+
+Predictors must not be perfectly collinear — if one is an exact linear
+combination of the others the correlation matrix is singular and a `ValueError`
+is raised. RWA handles ordinary multicollinearity fine; it is exact redundancy
+that cannot be decomposed.
 
 ## Usage
 
@@ -79,21 +103,23 @@ The function returns a DataFrame with two columns:
 ### Running Tests
 
 ```bash
-pytest
+uv run pytest
 ```
 
 ### Type Checking
 
 ```bash
-zuban check src/rwa
+uv run zuban check src/rwa
 ```
 
 ### Linting and Formatting
 
 ```bash
-ruff check .
-ruff format .
+uv run ruff check src tests
+uv run ruff format src tests
 ```
+
+`make check` runs everything CI runs; `make format` applies all auto-formatters.
 
 ## References
 
@@ -114,9 +140,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use this package in your research, please cite:
 
 ```bibtex
-@software{rwa2026,
+@software{johnson_rwa2026,
   author = {McNamara, Conor},
-  title = {rwa: Johnson's Relative Weights Analysis for Python},
+  title = {johnson-rwa: Johnson's Relative Weights Analysis for Python},
   year = {2026},
   url = {https://github.com/ConorMcNamara/rwa}
 }
