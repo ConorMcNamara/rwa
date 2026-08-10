@@ -41,7 +41,7 @@ plot = [
 # Install with `uv sync` (all groups) or `uv sync --group test`.
 [dependency-groups]
 test = [
-    "pytest>=7.0.0",
+    "pytest>=9.0.3",
     "pytest-cov>=4.0.0",
     "statsmodels>=0.14.0",
 ]
