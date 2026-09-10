@@ -149,6 +149,40 @@ class TestRWA:
             johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
 
     @staticmethod
+    def test_zero_variance_y_raises() -> None:
+        """Test that constant y_var raises an informative error."""
+        np.random.seed(42)
+        df = pd.DataFrame(
+            {
+                "x1": np.random.randn(20),
+                "x2": np.random.randn(20),
+                "y": np.full(20, 5.0),
+            }
+        )
+        with pytest.raises(ValueError, match="zero variance"):
+            johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
+
+    @staticmethod
+    def test_zero_r_squared_raises() -> None:
+        """Test that predictors orthogonal to y_var raise an informative error."""
+        df = pd.DataFrame(
+            {
+                "x1": [1, -1, 1, -1],
+                "x2": [1, 1, -1, -1],
+                "y": [1, -1, -1, 1],
+            }
+        )
+        with pytest.raises(ValueError, match="R-squared is zero"):
+            johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
+
+    @staticmethod
+    def test_sample_fixture_works(sample_dataframe: pd.DataFrame) -> None:
+        """Test that the shared fixture produces valid results."""
+        weights = johnson_relative_weights(sample_dataframe, y_var="y")
+        assert weights is not None
+        assert all(weights["relative weights"] >= 0)
+
+    @staticmethod
     @pytest.mark.network
     def test_rwa_toy_dataset() -> None:
         """Tests rwa on a known toy dataset (requires network access)."""
