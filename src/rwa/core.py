@@ -40,8 +40,9 @@ def johnson_relative_weights(
     TypeError
         If df is not a pandas DataFrame
     ValueError
-        If neither y_var nor x_vars are provided, or if the predictors in
-        x_vars are perfectly collinear
+        If neither y_var nor x_vars are provided, if y_var has zero
+        variance, if the predictors in x_vars are perfectly collinear,
+        or if R-squared is zero
     ImportError
         If plotting is requested but Plotly is not installed
 
@@ -59,8 +60,8 @@ def johnson_relative_weights(
     >>> import pandas as pd
     >>> df = pd.DataFrame({
     ...     'x1': [1, 2, 3, 4, 5],
-    ...     'x2': [2, 4, 6, 8, 10],
-    ...     'y': [1, 3, 5, 7, 9]
+    ...     'x2': [5, 3, 4, 1, 2],
+    ...     'y': [3, 5, 7, 10, 14]
     ... })
     >>> weights = johnson_relative_weights(df, x_vars=['x1', 'x2'], y_var='y')
     """
@@ -90,6 +91,11 @@ def johnson_relative_weights(
 
     # Extract correlations
     y_corr = correlation_matrix[y_var].drop(y_var, axis=0)
+    if y_corr.isna().any():
+        raise ValueError(
+            "y_var has zero variance, so correlations with the predictors "
+            "are undefined and relative weights cannot be computed."
+        )
     x_corr = correlation_matrix[x_vars].drop(y_var, axis=0)
 
     # Eigenvalue decomposition. The correlation matrix is real and symmetric, so
@@ -99,8 +105,16 @@ def johnson_relative_weights(
     eig_val, eig_vec = np.linalg.eigh(x_corr)
 
     # A correlation matrix is positive semi-definite, so any negative eigenvalue is
-    # floating-point noise. Clip it to zero to keep the square root real.
+    # floating-point noise. Clip to zero, then check for effective singularity
+    # before proceeding.
     eig_val = np.clip(eig_val, 0.0, None)
+    tol = eig_val.max() * len(eig_val) * np.finfo(float).eps
+    if eig_val.min() < tol:
+        raise ValueError(
+            "The predictors in x_vars are perfectly (or near-perfectly) collinear, "
+            "so their correlation matrix is singular and relative weights cannot be "
+            "computed. Drop redundant predictors and try again."
+        )
 
     diag_eig = np.diagflat(eig_val)
     sqrt_diag_eig_val = np.sqrt(diag_eig)
@@ -108,19 +122,18 @@ def johnson_relative_weights(
 
     # Calculate lambda matrix
     lamda = np.matmul(np.matmul(eig_vec, sqrt_diag_eig_val), eigen_vec_t)
-    try:
-        inv_lamda = np.linalg.inv(lamda)
-    except np.linalg.LinAlgError as exc:
-        raise ValueError(
-            "The predictors in x_vars are perfectly (or near-perfectly) collinear, "
-            "so their correlation matrix is singular and relative weights cannot be "
-            "computed. Drop redundant predictors and try again."
-        ) from exc
+    inv_lamda = np.linalg.inv(lamda)
     lamda_squared = np.square(lamda)
 
     # Calculate partial effects and weights
     partial_effect = np.matmul(inv_lamda, y_corr)
     r_squared = np.sum(np.square(partial_effect))
+    if r_squared < np.finfo(float).eps:
+        raise ValueError(
+            "R-squared is zero (or numerically indistinguishable from zero) — "
+            "the predictors have no linear relationship with y_var, so "
+            "relative weights are undefined."
+        )
     raw_relative_weight = np.matmul(lamda_squared, np.square(partial_effect))
 
     # Create results DataFrame
