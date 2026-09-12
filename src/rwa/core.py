@@ -8,6 +8,7 @@ def johnson_relative_weights(
     df: pd.DataFrame,
     x_vars: list[str] | None = None,
     y_var: str | None = None,
+    apply_signs: bool = False,
     plot_weights: bool = False,
     plot_rescaled: bool = False,
 ) -> pd.DataFrame:
@@ -24,6 +25,10 @@ def johnson_relative_weights(
         Optional if y_var is provided.
     y_var : str, optional
         The y-variable metric. Optional if x_vars is provided.
+    apply_signs : bool, default=False
+        Whether to apply the sign of each predictor's orthogonalized
+        regression coefficient to the rescaled weights. Useful for
+        identifying suppressor variables.
     plot_weights : bool, default=False
         Whether to plot the relative weights
     plot_rescaled : bool, default=False
@@ -33,7 +38,8 @@ def johnson_relative_weights(
     -------
     pd.DataFrame
         The Johnson's relative weights for each variable in X,
-        as well as the rescaled weights
+        as well as the rescaled weights. When ``apply_signs`` is True,
+        a ``signed rescaled relative weights`` column is included.
 
     Raises
     ------
@@ -97,6 +103,12 @@ def johnson_relative_weights(
             "are undefined and relative weights cannot be computed."
         )
     x_corr = correlation_matrix[x_vars].drop(y_var, axis=0)
+    if x_corr.isna().any().any():
+        nan_vars = x_corr.columns[x_corr.isna().any()].tolist()
+        raise ValueError(
+            f"The following predictors have zero variance (or produce undefined "
+            f"correlations): {nan_vars}. Drop them and try again."
+        )
 
     # Eigenvalue decomposition. The correlation matrix is real and symmetric, so
     # eigh is used rather than eig: it guarantees real eigenvalues and orthonormal
@@ -135,13 +147,16 @@ def johnson_relative_weights(
             "relative weights are undefined."
         )
     raw_relative_weight = np.matmul(lamda_squared, np.square(partial_effect))
+    rescaled_weight = raw_relative_weight * 100 / r_squared
 
     # Create results DataFrame
-    weights = pd.DataFrame(
-        np.array([raw_relative_weight, raw_relative_weight * 100 / r_squared]).reshape(2, len(x_vars)),
-        columns=x_vars,
-    )
-    weights.index = ["relative weights", "rescaled relative weights"]
+    rows = [raw_relative_weight, rescaled_weight]
+    index = ["relative weights", "rescaled relative weights"]
+    if apply_signs:
+        signs = np.sign(partial_effect)
+        rows.append(rescaled_weight * signs)
+        index.append("signed rescaled relative weights")
+    weights = pd.DataFrame(np.array(rows), columns=x_vars, index=index)
 
     # Optional plotting, which requires the "plot" extra
     if plot_weights or plot_rescaled:

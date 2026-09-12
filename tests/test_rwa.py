@@ -163,6 +163,20 @@ class TestRWA:
             johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
 
     @staticmethod
+    def test_zero_variance_x_raises() -> None:
+        """Test that a constant predictor raises an informative error."""
+        np.random.seed(42)
+        df = pd.DataFrame(
+            {
+                "x1": np.random.randn(20),
+                "x2": np.full(20, 3.0),
+                "y": np.random.randn(20),
+            }
+        )
+        with pytest.raises(ValueError, match="zero variance"):
+            johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
+
+    @staticmethod
     def test_zero_r_squared_raises() -> None:
         """Test that predictors orthogonal to y_var raise an informative error."""
         df = pd.DataFrame(
@@ -174,6 +188,47 @@ class TestRWA:
         )
         with pytest.raises(ValueError, match="R-squared is zero"):
             johnson_relative_weights(df, x_vars=["x1", "x2"], y_var="y")
+
+    @staticmethod
+    def test_apply_signs_output_structure() -> None:
+        """Test that apply_signs adds the signed rescaled column."""
+        np.random.seed(42)
+        n = 50
+        x1 = np.random.randn(n)
+        x2 = np.random.randn(n)
+        y = 2 * x1 - 1 * x2 + 0.5 * np.random.randn(n)
+        df = pd.DataFrame({"x1": x1, "x2": x2, "y": y})
+
+        weights = johnson_relative_weights(df, ["x1", "x2"], "y", apply_signs=True)
+        assert "signed rescaled relative weights" in weights.columns
+        assert len(weights.columns) == 3
+
+    @staticmethod
+    def test_apply_signs_values() -> None:
+        """Test that signed weights have correct signs and magnitudes."""
+        np.random.seed(42)
+        n = 200
+        x1 = np.random.randn(n)
+        x2 = np.random.randn(n)
+        y = 3 * x1 - 2 * x2 + 0.3 * np.random.randn(n)
+        df = pd.DataFrame({"x1": x1, "x2": x2, "y": y})
+
+        weights = johnson_relative_weights(df, ["x1", "x2"], "y", apply_signs=True)
+        signed = weights["signed rescaled relative weights"]
+        rescaled = weights["rescaled relative weights"]
+        assert signed["x1"] > 0
+        assert signed["x2"] < 0
+        np.testing.assert_allclose(np.abs(signed).to_numpy(), rescaled.to_numpy())
+
+    @staticmethod
+    def test_apply_signs_false_excludes_column() -> None:
+        """Test that signed column is absent when apply_signs is False."""
+        np.random.seed(42)
+        df = pd.DataFrame(
+            {"x1": np.random.randn(20), "x2": np.random.randn(20), "y": np.random.randn(20)}
+        )
+        weights = johnson_relative_weights(df, ["x1", "x2"], "y", apply_signs=False)
+        assert "signed rescaled relative weights" not in weights.columns
 
     @staticmethod
     def test_sample_fixture_works(sample_dataframe: pd.DataFrame) -> None:
@@ -198,8 +253,8 @@ class TestRWA:
         # https://martinctc.github.io/rwa/ for comparison
         expected_weight_array = np.array([0.2284797, 0.2221469, 0.2321744, 0.0963886])
         expected_rescaled_array = np.array([29.32274, 28.50999, 29.79691, 12.37037])
-        np.testing.assert_allclose(actual_weight_array, expected_weight_array, rtol=1e-3)
-        np.testing.assert_allclose(actual_rescaled_array, expected_rescaled_array, rtol=1e-3)
+        np.testing.assert_allclose(actual_weight_array, expected_weight_array, rtol=1e-6)
+        np.testing.assert_allclose(actual_rescaled_array, expected_rescaled_array, rtol=1e-6)
 
 
 if __name__ == "__main__":
