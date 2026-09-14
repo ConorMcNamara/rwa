@@ -224,9 +224,7 @@ class TestRWA:
     def test_apply_signs_false_excludes_column() -> None:
         """Test that signed column is absent when apply_signs is False."""
         np.random.seed(42)
-        df = pd.DataFrame(
-            {"x1": np.random.randn(20), "x2": np.random.randn(20), "y": np.random.randn(20)}
-        )
+        df = pd.DataFrame({"x1": np.random.randn(20), "x2": np.random.randn(20), "y": np.random.randn(20)})
         weights = johnson_relative_weights(df, ["x1", "x2"], "y", apply_signs=False)
         assert "signed rescaled relative weights" not in weights.columns
 
